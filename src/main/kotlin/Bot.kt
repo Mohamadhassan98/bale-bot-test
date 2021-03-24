@@ -10,7 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.util.*
 
-class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, "${Constants.botServerPath}/${Constants.token}") {
+class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.botUsername) {
 
     override fun creatorId() = 714273093L
 
