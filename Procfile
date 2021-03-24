@@ -1,1 +1,1 @@
-web: ./build/install/PromisedSaviour/bin/PromisedSaviour
+worker: ./build/install/PromisedSaviour/bin/PromisedSaviour
