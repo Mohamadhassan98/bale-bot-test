@@ -2,6 +2,7 @@ import model.Promise
 import model.PromiseType
 import model.UserStatus
 import org.telegram.abilitybots.api.bot.AbilityBot
+import org.telegram.abilitybots.api.bot.AbilityWebhookBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.abilitybots.api.sender.SilentSender
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
@@ -10,7 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.util.*
 
-class Bot : AbilityBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", "PromisedSaviourDevBot") {
+class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", "PromisedSaviourDevBot", "https://promisedsaviourbot.herokuapp.com") {
 
     override fun creatorId() = 714273093L
 
