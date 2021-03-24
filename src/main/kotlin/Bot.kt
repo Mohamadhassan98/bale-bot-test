@@ -1,7 +1,6 @@
 import model.Promise
 import model.PromiseType
 import model.UserStatus
-import org.telegram.abilitybots.api.bot.AbilityBot
 import org.telegram.abilitybots.api.bot.AbilityWebhookBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.abilitybots.api.sender.SilentSender
@@ -11,7 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.util.*
 
-class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", "PromisedSaviourDevBot", "https://promisedsaviourbot.herokuapp.com") {
+class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, "${Constants.botServerPath}/${Constants.token}") {
 
     override fun creatorId() = 714273093L
 
@@ -25,13 +24,13 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
             }
         }.time, period = 24 * 60 * 60 * 1000) {
             val sentMessages = mutableSetOf<Long>()
-            val promises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+            val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
             promises.entries.filter { (_, userStatus) ->
                 userStatus.isReadyToSend
             }.forEach { (userId, userStatus) ->
                 silent.send(
-                    "${Messages.promiseReminder}\n${
-                        Messages.promiseInfoDialog(
+                    "${Constants.promiseReminder}\n${
+                        Constants.promiseInfoDialog(
                             getPromise(userStatus.promise)!!,
                             userStatus,
                             PromiseType.getType(userStatus.promise / 100)!!,
@@ -57,9 +56,9 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
         get() = Ability
             .builder()
             .name("start")
-            .info(Messages.startInfo)
+            .info(Constants.startInfo)
             .action {
-                silent.sendWithInlineKeyboard(Messages.welcome, it.chatId(), PromiseType.values().map { promiseType ->
+                silent.sendWithInlineKeyboard(Constants.welcome, it.chatId(), PromiseType.values().map { promiseType ->
                     promiseType.persianName to promiseType.name
                 }.toMap())
             }
@@ -71,13 +70,13 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
     val replyToPromiseType: Reply
         get() = Reply.of({ _, it ->
             val promiseType = PromiseType.valueOf(it.callbackQuery.data)
-            val data = "${Messages.selectedPromiseType} ${promiseType.persianName}:\n${
+            val data = "${Constants.selectedPromiseType} ${promiseType.persianName}:\n${
                 promises.value.first {
                     it.audience == promiseType
                 }.promises.joinToString("\n") {
                     "${promiseType.id}${it.id.toString().padStart(2, '0')}-${it.content}"
                 }
-            }\n${Messages.promiseRegisterHelp}"
+            }\n${Constants.promiseRegisterHelp}"
             silent.send(data, it.callbackQuery.message.chatId)
         }, Flag.CALLBACK_QUERY, {
             runCatching { PromiseType.valueOf(it.callbackQuery.data) }.isSuccess
@@ -88,32 +87,32 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
         get() = Ability
             .builder()
             .name("promise")
-            .info(Messages.promiseRegisterInfo)
+            .info(Constants.promiseRegisterInfo)
             .privacy(Privacy.PUBLIC)
             .locality(Locality.USER)
             .input(1)
             .action {
                 if (hasPromise(it.user().id)) {
-                    silent.send(Messages.alreadyHasPromise, it.chatId())
+                    silent.send(Constants.alreadyHasPromise, it.chatId())
                     return@action
                 }
                 val promiseId = it.firstArg()
                 if (promiseId.toIntOrNull() == null) {
-                    silent.send(Messages.wrongPromise, it.chatId())
+                    silent.send(Constants.wrongPromise, it.chatId())
                     return@action
                 }
                 val promise = getPromise(promiseId.toInt())
                 if (promise == null) {
-                    silent.send(Messages.wrongPromise, it.chatId())
+                    silent.send(Constants.wrongPromise, it.chatId())
                     return@action
                 }
-                silent.sendWithInlineKeyboard(Messages.promiseConfirmDialog(
+                silent.sendWithInlineKeyboard(Constants.promiseConfirmDialog(
                     promise,
                     promiseId.toInt(),
                     PromiseType.getType(promiseId.toInt() / 100)!!
                 ), it.chatId(), mapOf(
-                    Messages.confirmPromiseText to "${Messages.confirmPromiseData} $promiseId",
-                    Messages.rejectPromiseText to "${Messages.rejectPromiseData} $promiseId"
+                    Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId",
+                    Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId"
                 ))
             }
             .build()
@@ -122,18 +121,18 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
     val replyToPromiseChoose: Reply
         get() = Reply.of({ _, it ->
             if (hasPromise(it.callbackQuery.from.id)) {
-                silent.send(Messages.alreadyHasPromise, it.callbackQuery.message.chatId)
+                silent.send(Constants.alreadyHasPromise, it.callbackQuery.message.chatId)
                 return@of
             }
             val data = it.callbackQuery.data
             val (result, promiseId) = data.split(" ")
             when (result) {
-                Messages.confirmPromiseData -> {
-                    val userPromises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+                Constants.confirmPromiseData -> {
+                    val userPromises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     userPromises[it.callbackQuery.from.id] = UserStatus(promiseId.toInt())
-                    silent.send(Messages.promiseConfirmed, it.callbackQuery.message.chatId)
+                    silent.send(Constants.promiseConfirmed, it.callbackQuery.message.chatId)
                 }
-                Messages.rejectPromiseData -> silent.sendWithInlineKeyboard(Messages.promiseRejected,
+                Constants.rejectPromiseData -> silent.sendWithInlineKeyboard(Constants.promiseRejected,
                     it.callbackQuery.message.chatId,
                     PromiseType.values().map {
                         it.persianName to it.name
@@ -141,105 +140,105 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
                 )
             }
         }, Flag.CALLBACK_QUERY, {
-            it.callbackQuery.data.startsWith(Messages.confirmPromiseData) || it.callbackQuery.data.startsWith(Messages.rejectPromiseData)
+            it.callbackQuery.data.startsWith(Constants.confirmPromiseData) || it.callbackQuery.data.startsWith(Constants.rejectPromiseData)
         })
 
     @Suppress("unused")
     val replyToPromiseModify: Reply
         get() = Reply.of({ _, it ->
             if (!hasPromise(it.callbackQuery.from.id)) {
-                silent.send(Messages.noPromiseFound, it.callbackQuery.message.chatId)
+                silent.send(Constants.noPromiseFound, it.callbackQuery.message.chatId)
                 return@of
             }
             when (it.callbackQuery.data) {
-                Messages.restartPromiseData -> silent.sendWithInlineKeyboard(
-                    Messages.restartPromiseConfirm, it.callbackQuery.message.chatId,
+                Constants.restartPromiseData -> silent.sendWithInlineKeyboard(
+                    Constants.restartPromiseConfirm, it.callbackQuery.message.chatId,
                     mapOf(
-                        Messages.restartPromiseConfirmText to Messages.restartPromiseConfirmData,
-                        Messages.restartPromiseRejectText to Messages.restartPromiseRejectData
+                        Constants.restartPromiseConfirmText to Constants.restartPromiseConfirmData,
+                        Constants.restartPromiseRejectText to Constants.restartPromiseRejectData
                     )
                 )
-                Messages.removePromiseData -> silent.sendWithInlineKeyboard(
-                    Messages.removePromiseConfirm,
+                Constants.removePromiseData -> silent.sendWithInlineKeyboard(
+                    Constants.removePromiseConfirm,
                     it.callbackQuery.message.chatId,
                     mapOf(
-                        Messages.removePromiseConfirmText to Messages.removePromiseConfirmData,
-                        Messages.removePromiseRejectText to Messages.removePromiseRejectData
+                        Constants.removePromiseConfirmText to Constants.removePromiseConfirmData,
+                        Constants.removePromiseRejectText to Constants.removePromiseRejectData
                     )
                 )
             }
         }, Flag.CALLBACK_QUERY, {
-            it.callbackQuery.data == Messages.removePromiseData || it.callbackQuery.data == Messages.restartPromiseData
+            it.callbackQuery.data == Constants.removePromiseData || it.callbackQuery.data == Constants.restartPromiseData
         })
 
     @Suppress("unused")
     val replyToRemovePromise: Reply
         get() = Reply.of({ _, it ->
             if (!hasPromise(it.callbackQuery.from.id)) {
-                silent.send(Messages.noPromiseFound, it.callbackQuery.message.chatId)
+                silent.send(Constants.noPromiseFound, it.callbackQuery.message.chatId)
                 return@of
             }
             when (it.callbackQuery.data) {
-                Messages.removePromiseConfirmData -> {
-                    val promises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+                Constants.removePromiseConfirmData -> {
+                    val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     promises.remove(it.callbackQuery.from.id)
-                    silent.send(Messages.promiseRemoved, it.callbackQuery.message.chatId)
-                    silent.send(Messages.noPromiseFound, it.callbackQuery.message.chatId)
+                    silent.send(Constants.promiseRemoved, it.callbackQuery.message.chatId)
+                    silent.send(Constants.noPromiseFound, it.callbackQuery.message.chatId)
                 }
-                Messages.removePromiseRejectData -> {
-                    val promises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+                Constants.removePromiseRejectData -> {
+                    val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
-                    silent.sendWithInlineKeyboard(Messages.promiseInfoDialog(
+                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
                         getPromise(userPromise.promise)!!,
                         userPromise,
                         PromiseType.getType(userPromise.promise / 100)!!
                     ), it.callbackQuery.message.chatId, mapOf(
-                        Messages.removePromiseText to Messages.removePromiseData,
-                        Messages.restartPromiseText to Messages.restartPromiseData
+                        Constants.removePromiseText to Constants.removePromiseData,
+                        Constants.restartPromiseText to Constants.restartPromiseData
                     ))
                 }
             }
         }, Flag.CALLBACK_QUERY, {
-            it.callbackQuery.data == Messages.removePromiseRejectData || it.callbackQuery.data == Messages.removePromiseConfirmData
+            it.callbackQuery.data == Constants.removePromiseRejectData || it.callbackQuery.data == Constants.removePromiseConfirmData
         })
 
     @Suppress("unused")
     val replyToRestartPromise: Reply
         get() = Reply.of({ _, it ->
             if (!hasPromise(it.callbackQuery.from.id)) {
-                silent.send(Messages.noPromiseFound, it.callbackQuery.message.chatId)
+                silent.send(Constants.noPromiseFound, it.callbackQuery.message.chatId)
                 return@of
             }
             when (it.callbackQuery.data) {
-                Messages.restartPromiseConfirmData -> {
-                    val promises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+                Constants.restartPromiseConfirmData -> {
+                    val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
                     promises[it.callbackQuery.from.id] = userPromise.copy(remainingDays = 40)
-                    silent.send(Messages.promiseRestarted, it.callbackQuery.message.chatId)
-                    silent.sendWithInlineKeyboard(Messages.promiseInfoDialog(
+                    silent.send(Constants.promiseRestarted, it.callbackQuery.message.chatId)
+                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
                         getPromise(userPromise.promise)!!,
                         userPromise,
                         PromiseType.getType(userPromise.promise / 100)!!
                     ), it.callbackQuery.message.chatId, mapOf(
-                        Messages.removePromiseText to Messages.removePromiseData,
-                        Messages.restartPromiseText to Messages.restartPromiseData
+                        Constants.removePromiseText to Constants.removePromiseData,
+                        Constants.restartPromiseText to Constants.restartPromiseData
                     ))
                 }
-                Messages.restartPromiseRejectData -> {
-                    val promises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+                Constants.restartPromiseRejectData -> {
+                    val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
-                    silent.sendWithInlineKeyboard(Messages.promiseInfoDialog(
+                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
                         getPromise(userPromise.promise)!!,
                         userPromise,
                         PromiseType.getType(userPromise.promise / 100)!!
                     ), it.callbackQuery.message.chatId, mapOf(
-                        Messages.removePromiseText to Messages.removePromiseData,
-                        Messages.restartPromiseText to Messages.restartPromiseData
+                        Constants.removePromiseText to Constants.removePromiseData,
+                        Constants.restartPromiseText to Constants.restartPromiseData
                     ))
                 }
             }
         }, Flag.CALLBACK_QUERY, {
-            it.callbackQuery.data == Messages.restartPromiseRejectData || it.callbackQuery.data == Messages.restartPromiseConfirmData
+            it.callbackQuery.data == Constants.restartPromiseRejectData || it.callbackQuery.data == Constants.restartPromiseConfirmData
         })
 
     @Suppress("unused")
@@ -247,22 +246,22 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
         get() = Ability
             .builder()
             .name("info")
-            .info(Messages.statusInfoInfo)
+            .info(Constants.statusInfoInfo)
             .locality(Locality.USER)
             .privacy(Privacy.PUBLIC)
             .action {
-                val promises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+                val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                 val userPromise = promises[it.user().id]
                 if (userPromise == null) {
-                    silent.send(Messages.noPromiseFound, it.chatId())
+                    silent.send(Constants.noPromiseFound, it.chatId())
                 } else {
-                    silent.sendWithInlineKeyboard(Messages.promiseInfoDialog(
+                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
                         getPromise(userPromise.promise)!!,
                         userPromise,
                         PromiseType.getType(userPromise.promise / 100)!!
                     ), it.chatId(), mapOf(
-                        Messages.removePromiseText to Messages.removePromiseData,
-                        Messages.restartPromiseText to Messages.restartPromiseData
+                        Constants.removePromiseText to Constants.removePromiseData,
+                        Constants.restartPromiseText to Constants.restartPromiseData
                     ))
                 }
             }
@@ -292,7 +291,7 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
     }
 
     private fun hasPromise(userId: Long, promiseId: Int? = null): Boolean {
-        val userPromises = db.getMap<Long, UserStatus>(Messages.promisesDBMapName)
+        val userPromises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
         val userPromise = userPromises[userId] ?: return false
         return userPromise.promise == (promiseId ?: return true)
     }
@@ -309,7 +308,10 @@ class Bot : AbilityWebhookBot("1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ", 
     }
 }
 
-object Messages {
+object Constants {
+    const val token = "1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ"
+    const val botUsername = "PromisedSaviourDevBot"
+    const val botServerPath = "https://promisedsaviourbot.herokuapp.com"
     val welcome =
         """|به بات عهد با امام زمان خوش اومدی.
            |توی این بات ما چند تا عهد رو بهت معرفی می‌کنیم تا به دلخواه خودت یکی رو انتخاب کنی. بعد از اون ما تا چهل روز بهت یادآوری می‌کنیم که عهدت با امام زمانت رو فراموش نکنی.
