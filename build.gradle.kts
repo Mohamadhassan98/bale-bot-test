@@ -7,7 +7,7 @@ plugins {
 }
 
 application {
-    mainClass.set("main.kotlin.MainKt")
+    mainClass.set("MainKt")
 }
 
 group = "me.mohamadhassan"
