@@ -31,16 +31,30 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             promises.entries.filter { (_, userStatus) ->
                 userStatus.isReadyToSend
             }.forEach { (userId, userStatus) ->
-                silent.send(
-                    "${Constants.promiseReminder}\n${
-                        Constants.promiseInfoDialog(
-                            getPromise(userStatus.promise)!!,
-                            userStatus,
-                            PromiseType.getType(userStatus.promise / 100)!!,
-                            true
-                        )
-                    }", userId
-                )
+                if (userStatus.remainingDays == 1) {
+                    silent.send(
+                        "${Constants.promiseReminder}\n${
+                            Constants.promiseInfoDialog(
+                                getPromise(userStatus.promise)!!,
+                                userStatus,
+                                PromiseType.getType(userStatus.promise / 100)!!,
+                                true
+                            )
+                        }", userId
+                    )
+                    sender.sendVideo(SendVideo(userId.toString(), InputFile(File("./src/main/resources/video.mp4"))))
+                } else {
+                    silent.send(
+                        "${Constants.promiseReminder}\n${
+                            Constants.promiseInfoDialog(
+                                getPromise(userStatus.promise)!!,
+                                userStatus,
+                                PromiseType.getType(userStatus.promise / 100)!!,
+                                true
+                            )
+                        }", userId
+                    )
+                }
                 sentMessages += userId
             }
             sentMessages.forEach {
@@ -85,18 +99,6 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             runCatching { PromiseType.valueOf(it.callbackQuery.data) }.isSuccess
         })
 
-    val testVideo: Ability
-        get() = Ability
-            .builder()
-            .privacy(Privacy.PUBLIC)
-            .locality(Locality.USER)
-            .name("test")
-            .info("testing the send of video")
-            .action {
-                sender.sendVideo(SendVideo(it.chatId().toString(), InputFile(File("./src/main/resources/video.mp4"))))
-            }
-            .build()
-
     @Suppress("unused")
     val promise: Ability
         get() = Ability
@@ -136,14 +138,16 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     silent.send(Constants.wrongPromise, it.chatId())
                     return@action
                 }
-                silent.sendWithInlineKeyboard(Constants.promiseConfirmDialog(
-                    promise,
-                    promiseId.toInt(),
-                    PromiseType.getType(promiseId.toInt() / 100)!!
-                ), it.chatId(), mapOf(
-                    Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId $remainingDay",
-                    Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId $remainingDay"
-                ))
+                silent.sendWithInlineKeyboard(
+                    Constants.promiseConfirmDialog(
+                        promise,
+                        promiseId.toInt(),
+                        PromiseType.getType(promiseId.toInt() / 100)!!
+                    ), it.chatId(), mapOf(
+                        Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId $remainingDay",
+                        Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId $remainingDay"
+                    )
+                )
             }
             .build()
 
@@ -162,7 +166,8 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     userPromises[it.callbackQuery.from.id] = UserStatus(promiseId.toInt(), remaining.toInt())
                     silent.send(Constants.promiseConfirmed, it.callbackQuery.message.chatId)
                 }
-                Constants.rejectPromiseData -> silent.sendWithInlineKeyboard(Constants.promiseRejected,
+                Constants.rejectPromiseData -> silent.sendWithInlineKeyboard(
+                    Constants.promiseRejected,
                     it.callbackQuery.message.chatId,
                     PromiseType.values().map {
                         it.persianName to it.name
@@ -218,14 +223,16 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                 Constants.removePromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
-                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
-                        getPromise(userPromise.promise)!!,
-                        userPromise,
-                        PromiseType.getType(userPromise.promise / 100)!!
-                    ), it.callbackQuery.message.chatId, mapOf(
-                        Constants.removePromiseText to Constants.removePromiseData,
-                        Constants.restartPromiseText to Constants.restartPromiseData
-                    ))
+                    silent.sendWithInlineKeyboard(
+                        Constants.promiseInfoDialog(
+                            getPromise(userPromise.promise)!!,
+                            userPromise,
+                            PromiseType.getType(userPromise.promise / 100)!!
+                        ), it.callbackQuery.message.chatId, mapOf(
+                            Constants.removePromiseText to Constants.removePromiseData,
+                            Constants.restartPromiseText to Constants.restartPromiseData
+                        )
+                    )
                 }
             }
         }, Flag.CALLBACK_QUERY, {
@@ -245,26 +252,30 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     val userPromise = promises[it.callbackQuery.from.id]!!
                     promises[it.callbackQuery.from.id] = userPromise.copy(remainingDays = 40)
                     silent.send(Constants.promiseRestarted, it.callbackQuery.message.chatId)
-                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
-                        getPromise(userPromise.promise)!!,
-                        userPromise,
-                        PromiseType.getType(userPromise.promise / 100)!!
-                    ), it.callbackQuery.message.chatId, mapOf(
-                        Constants.removePromiseText to Constants.removePromiseData,
-                        Constants.restartPromiseText to Constants.restartPromiseData
-                    ))
+                    silent.sendWithInlineKeyboard(
+                        Constants.promiseInfoDialog(
+                            getPromise(userPromise.promise)!!,
+                            userPromise,
+                            PromiseType.getType(userPromise.promise / 100)!!
+                        ), it.callbackQuery.message.chatId, mapOf(
+                            Constants.removePromiseText to Constants.removePromiseData,
+                            Constants.restartPromiseText to Constants.restartPromiseData
+                        )
+                    )
                 }
                 Constants.restartPromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
-                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
-                        getPromise(userPromise.promise)!!,
-                        userPromise,
-                        PromiseType.getType(userPromise.promise / 100)!!
-                    ), it.callbackQuery.message.chatId, mapOf(
-                        Constants.removePromiseText to Constants.removePromiseData,
-                        Constants.restartPromiseText to Constants.restartPromiseData
-                    ))
+                    silent.sendWithInlineKeyboard(
+                        Constants.promiseInfoDialog(
+                            getPromise(userPromise.promise)!!,
+                            userPromise,
+                            PromiseType.getType(userPromise.promise / 100)!!
+                        ), it.callbackQuery.message.chatId, mapOf(
+                            Constants.removePromiseText to Constants.removePromiseData,
+                            Constants.restartPromiseText to Constants.restartPromiseData
+                        )
+                    )
                 }
             }
         }, Flag.CALLBACK_QUERY, {
@@ -285,14 +296,16 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                 if (userPromise == null) {
                     silent.send(Constants.noPromiseFound, it.chatId())
                 } else {
-                    silent.sendWithInlineKeyboard(Constants.promiseInfoDialog(
-                        getPromise(userPromise.promise)!!,
-                        userPromise,
-                        PromiseType.getType(userPromise.promise / 100)!!
-                    ), it.chatId(), mapOf(
-                        Constants.removePromiseText to Constants.removePromiseData,
-                        Constants.restartPromiseText to Constants.restartPromiseData
-                    ))
+                    silent.sendWithInlineKeyboard(
+                        Constants.promiseInfoDialog(
+                            getPromise(userPromise.promise)!!,
+                            userPromise,
+                            PromiseType.getType(userPromise.promise / 100)!!
+                        ), it.chatId(), mapOf(
+                            Constants.removePromiseText to Constants.removePromiseData,
+                            Constants.restartPromiseText to Constants.restartPromiseData
+                        )
+                    )
                 }
             }
             .build()
@@ -370,6 +383,7 @@ object Constants {
         |
         |عهد مورد تأیید است؟
     """.trimMargin()
+
     const val insufficientNumberOfArguments = "تعداد پارامترهای ورودی مناسب نیست."
 
     fun promiseInfoDialog(
