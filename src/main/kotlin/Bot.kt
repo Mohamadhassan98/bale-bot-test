@@ -5,9 +5,12 @@ import org.telegram.abilitybots.api.bot.AbilityWebhookBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.abilitybots.api.sender.SilentSender
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo
+import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import java.io.File
 import java.util.*
 
 class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.botUsername) {
@@ -82,6 +85,18 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             runCatching { PromiseType.valueOf(it.callbackQuery.data) }.isSuccess
         })
 
+    val testVideo: Ability
+        get() = Ability
+            .builder()
+            .privacy(Privacy.PUBLIC)
+            .locality(Locality.USER)
+            .name("test")
+            .info("testing the send of video")
+            .action {
+                sender.sendVideo(SendVideo(it.chatId().toString(), InputFile(File("./src/main/resources/video.mp4"))))
+            }
+            .build()
+
     @Suppress("unused")
     val promise: Ability
         get() = Ability
@@ -90,14 +105,29 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             .info(Constants.promiseRegisterInfo)
             .privacy(Privacy.PUBLIC)
             .locality(Locality.USER)
-            .input(1)
+            .input(0)
             .action {
                 if (hasPromise(it.user().id)) {
                     silent.send(Constants.alreadyHasPromise, it.chatId())
                     return@action
                 }
-                val promiseId = it.firstArg()
-                if (promiseId.toIntOrNull() == null) {
+                val promiseId: String
+                val remainingDay: String
+                when (it.arguments().size) {
+                    2 -> {
+                        promiseId = it.arguments()[0]
+                        remainingDay = it.arguments()[1]
+                    }
+                    1 -> {
+                        promiseId = it.arguments()[0]
+                        remainingDay = "40"
+                    }
+                    else -> {
+                        silent.send(Constants.insufficientNumberOfArguments, it.chatId())
+                        return@action
+                    }
+                }
+                if (promiseId.toIntOrNull() == null || remainingDay.toIntOrNull() == null) {
                     silent.send(Constants.wrongPromise, it.chatId())
                     return@action
                 }
@@ -111,8 +141,8 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     promiseId.toInt(),
                     PromiseType.getType(promiseId.toInt() / 100)!!
                 ), it.chatId(), mapOf(
-                    Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId",
-                    Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId"
+                    Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId $remainingDay",
+                    Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId $remainingDay"
                 ))
             }
             .build()
@@ -125,11 +155,11 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                 return@of
             }
             val data = it.callbackQuery.data
-            val (result, promiseId) = data.split(" ")
+            val (result, promiseId, remaining) = data.split(" ")
             when (result) {
                 Constants.confirmPromiseData -> {
                     val userPromises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
-                    userPromises[it.callbackQuery.from.id] = UserStatus(promiseId.toInt())
+                    userPromises[it.callbackQuery.from.id] = UserStatus(promiseId.toInt(), remaining.toInt())
                     silent.send(Constants.promiseConfirmed, it.callbackQuery.message.chatId)
                 }
                 Constants.rejectPromiseData -> silent.sendWithInlineKeyboard(Constants.promiseRejected,
@@ -316,7 +346,7 @@ object Constants {
         """|به بات عهد با امام زمان خوش اومدی.
            |توی این بات ما چند تا عهد رو بهت معرفی می‌کنیم تا به دلخواه خودت یکی رو انتخاب کنی. بعد از اون ما تا چهل روز بهت یادآوری می‌کنیم که عهدت با امام زمانت رو فراموش نکنی.
            |عهدهایی که می‌تونی با امام زمان (عج) ببندی می‌تونه در رابطه با سه دسته افراد باشه که برای این که راحت‌تر بتونی عهد مورد نظرت رو پیدا کنی ما هم با همین دسته‌بندی عهدها رو بهت نشون می‌دیم. این سه دسته عبارتند از:
-           |۱- در رابطه با خدا
+           |۱- در رابطه با خدا و اهل بیت (ع)
            |۲- در رابطه با مردم
            |۳- در رابطه با خودت
            |برای مشاهده لیست عهدها، یکی از دسته‌ها رو انتخاب کن.
@@ -324,7 +354,7 @@ object Constants {
     const val startInfo = "شروع کار با بات"
     const val selectedPromiseType = "نمایش لیست عهدها"
     const val promiseRegisterHelp =
-        "برای انتخاب هر یک از عهدها کافیه شماره عهد رو بعد از دستور /promise با یه فاصله وارد کنی.\nمثلاً:\n/promise 111"
+        "برای انتخاب هر یک از عهدها کافیه شماره عهد رو بعد از دستور /promise با یه فاصله وارد کنی.\nمثلاً:\n/promise 111\nهمچنین می‌تونی بعد از شماره عهد، روزهایی که می‌خوای بهت یادآوری بشه رو وارد کنی. مثلاً:\n/promise 111 20"
     const val promiseRegisterInfo = "ثبت عهد جدید با ارسال شماره عهد پس از این دستور"
     const val alreadyHasPromise = "شما یک عهد قبلی دارید. جهت مشاهده عهد خود دستور زیر را وارد کنید.\n/info"
     const val wrongPromise = "عهد انتخابی معتبر نمی‌باشد."
@@ -340,6 +370,7 @@ object Constants {
         |
         |عهد مورد تأیید است؟
     """.trimMargin()
+    const val insufficientNumberOfArguments = "تعداد پارامترهای ورودی مناسب نیست."
 
     fun promiseInfoDialog(
         promise: Promise,

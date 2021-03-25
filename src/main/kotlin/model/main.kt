@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import java.util.*
 
 enum class PromiseType(val id: Int, val persianName: String) {
-    God(1, "در ارتباط با خدا"),
+    God(1, "در ارتباط با خدا و اهل بیت (ع)"),
     People(2, "در ارتباط با مردم"),
     Self(3, "در ارتباط با خودم");
 
