@@ -57,7 +57,7 @@
             {
                 "id": 14,
                 "content": "خواندن دو حدیث در روز",
-                "payload": "[دانلود برنامه حدیث روزانه](http://cafebazaar.ir/app/?id=net.firstcause.mydailyhadith&ref=share)"
+                "payload": "<a href=\"http://cafebazaar.ir/app/?id=net.firstcause.mydailyhadith&ref=share\">دانلود برنامه حدیث روزانه</a>"
             },
             {
                 "id": 15,
@@ -440,7 +440,7 @@
             {
                 "id": 4,
                 "content": "گوش ندادن به موسیقی حرام",
-                "payload": "[استفتائات رهبری درمورد موسیقی](https://farsi.khamenei.ir/treatise-content?id=99&pid=99&tid=-1)\n[استفتائات آیت\u200Cالله مکارم شیرازی در مورد موسیقی](https://makarem.ir/main.aspx?lid=0&typeinfo=21&catid=46485)"
+                "payload": "<a href=\"https://farsi.khamenei.ir/treatise-content?id=99&pid=99&tid=-1\">استفتائات رهبری درمورد موسیقی</a>\n<a href=\"https://makarem.ir/main.aspx?lid=0&typeinfo=21&catid=46485\">استفتائات آیت\u200Cالله مکارم شیرازی در مورد موسیقی</a>"
             },
             {
                 "id": 5,

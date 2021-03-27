@@ -183,7 +183,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     ), it.chatId(), mapOf(
                         Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId $remainingDay",
                         Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId $remainingDay"
-                    ), ParseMode.MARKDOWNV2
+                    ), ParseMode.HTML
                 )
             }
             .build()
@@ -269,7 +269,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    , ParseMode.MARKDOWNV2)
+                    , ParseMode.HTML)
                 }
             }
         }, Flag.CALLBACK_QUERY, {
@@ -298,7 +298,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    , ParseMode.MARKDOWNV2)
+                    , ParseMode.HTML)
                 }
                 Constants.restartPromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
@@ -312,7 +312,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    , ParseMode.MARKDOWNV2)
+                    , ParseMode.HTML)
                 }
             }
         }, Flag.CALLBACK_QUERY, {
@@ -342,7 +342,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    , ParseMode.MARKDOWNV2)
+                    , ParseMode.HTML)
                 }
             }
             .build()
