@@ -9,6 +9,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
+import org.telegram.telegrambots.meta.api.objects.polls.Poll
+import org.telegram.telegrambots.meta.api.objects.polls.PollOption
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.File
@@ -84,6 +86,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         .correctOptionId(0)
                         .question("آیا به عهدت وفا کردی؟")
                         .options(setOf("بله.", "خیر."))
+                        .type("quiz")
                         .build()
                 )
             }
