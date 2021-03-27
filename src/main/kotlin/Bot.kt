@@ -4,6 +4,7 @@ import model.UserStatus
 import org.telegram.abilitybots.api.bot.AbilityWebhookBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.abilitybots.api.sender.SilentSender
+import org.telegram.telegrambots.meta.api.methods.polls.SendPoll
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
@@ -68,6 +69,26 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
         }
     }
 
+    val test: Ability
+        get() = Ability
+            .builder()
+            .name("test")
+            .privacy(Privacy.PUBLIC)
+            .locality(Locality.USER)
+            .action {
+                sender.execute(
+                    SendPoll
+                        .builder()
+                        .chatId(it.chatId().toString())
+                        .allowMultipleAnswers(false)
+                        .correctOptionId(0)
+                        .question("آیا به عهدت وفا کردی؟")
+                        .options(setOf("بله.", "خیر."))
+                        .build()
+                )
+            }
+            .build()
+
     @Suppress("unused")
     val startBot: Ability
         get() = Ability
@@ -130,6 +151,10 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     }
                 }
                 if (promiseId.toIntOrNull() == null || remainingDay.toIntOrNull() == null) {
+                    silent.send(Constants.wrongPromise, it.chatId())
+                    return@action
+                }
+                if (remainingDay.toInt() !in 5..100) {
                     silent.send(Constants.wrongPromise, it.chatId())
                     return@action
                 }
