@@ -92,27 +92,12 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             }
             .build()
 
-    val replyToPoll: Reply
-        get() = Reply.of({ _, it ->
-            println("In poll reply")
-            if (it.poll.options[0].voterCount == 1) {
-                println("RightAnswerFromPollReply")
-//                silent.send("دمت گرم.", getChatId(it))
-            } else {
-                println("WrongAnswerFromPollReply")
-//                silent.send("دکی!", it.pollAnswer.user.id)
-            }
-        }, Flag.POLL)
-
     val replyToPollAnswer: Reply
         get() = Reply.of({ _, it ->
-            println("In poll answer reply")
-            if (it.poll.options[0].voterCount == 1) {
-                println("RightAnswerFromPollAnswerReply")
-//                silent.send("دمت گرم.", getChatId(it))
+            if (it.pollAnswer.optionIds[0] == 0) {
+                silent.send("دمت گرم.", it.pollAnswer.user.id)
             } else {
-                println("WrongAnswerFromPollAnswerReply")
-//                silent.send("دکی!", it.pollAnswer.user.id)
+                silent.send("دکی!", it.pollAnswer.user.id)
             }
         }, Flag.POLL_ANSWER)
 
