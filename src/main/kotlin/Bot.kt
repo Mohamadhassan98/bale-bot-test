@@ -81,6 +81,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     SendPoll
                         .builder()
                         .chatId(it.chatId().toString())
+                        .isAnonymous(false)
                         .allowMultipleAnswers(false)
                         .correctOptionId(0)
                         .question("آیا به عهدت وفا کردی؟")
