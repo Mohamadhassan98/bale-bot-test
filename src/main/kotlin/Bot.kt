@@ -94,12 +94,12 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
 
     val replyToPoll: Reply
         get() = Reply.of({ _, it ->
-            if (it.pollAnswer.optionIds[0] == 0) {
+            if (it.poll.options[0].voterCount == 1) {
                 silent.send("دمت گرم.", it.pollAnswer.user.id)
             } else {
                 silent.send("دکی!", it.pollAnswer.user.id)
             }
-        }, Flag.POLL_ANSWER)
+        }, Flag.POLL)
 
     @Suppress("unused")
     val startBot: Ability
