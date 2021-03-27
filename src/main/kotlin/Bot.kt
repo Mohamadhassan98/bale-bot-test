@@ -13,7 +13,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.File
 import java.util.*
-import org.telegram.abilitybots.api.util.AbilityUtils.getChatId
 
 class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.botUsername) {
 
@@ -33,29 +32,28 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             promises.entries.filter { (_, userStatus) ->
                 userStatus.isReadyToSend
             }.forEach { (userId, userStatus) ->
+                sender.execute(
+                    SendPoll
+                        .builder()
+                        .isAnonymous(false)
+                        .correctOptionId(0)
+                        .question(
+                            "${Constants.promiseReminder}\n${
+                                Constants.promiseInfoDialog(
+                                    getPromise(userStatus.promise)!!,
+                                    userStatus,
+                                    PromiseType.getType(userStatus.promise / 100)!!,
+                                    true
+                                )
+                            }\n${Constants.accomplished}"
+                        )
+                        .chatId(userId.toString())
+                        .options(setOf("بله.", "خیر."))
+                        .type("quiz")
+                        .build()
+                )
                 if (userStatus.remainingDays == 1) {
-                    silent.send(
-                        "${Constants.promiseReminder}\n${
-                            Constants.promiseInfoDialog(
-                                getPromise(userStatus.promise)!!,
-                                userStatus,
-                                PromiseType.getType(userStatus.promise / 100)!!,
-                                true
-                            )
-                        }", userId
-                    )
                     sender.sendVideo(SendVideo(userId.toString(), InputFile(File("./src/main/resources/video.mp4"))))
-                } else {
-                    silent.send(
-                        "${Constants.promiseReminder}\n${
-                            Constants.promiseInfoDialog(
-                                getPromise(userStatus.promise)!!,
-                                userStatus,
-                                PromiseType.getType(userStatus.promise / 100)!!,
-                                true
-                            )
-                        }", userId
-                    )
                 }
                 sentMessages += userId
             }
@@ -84,7 +82,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         .isAnonymous(false)
                         .allowMultipleAnswers(false)
                         .correctOptionId(0)
-                        .question("آیا به عهدت وفا کردی؟")
+                        .question(Constants.accomplished)
                         .options(setOf("بله.", "خیر."))
                         .type("quiz")
                         .build()
@@ -92,12 +90,12 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             }
             .build()
 
+
+    @Suppress("unused")
     val replyToPollAnswer: Reply
         get() = Reply.of({ _, it ->
-            if (it.pollAnswer.optionIds[0] == 0) {
-                silent.send("دمت گرم.", it.pollAnswer.user.id)
-            } else {
-                silent.send("دکی!", it.pollAnswer.user.id)
+            if (it.pollAnswer.optionIds[0] == 1) {
+                silent.send("${Constants.sorry}${Constants.punishments.random()}", it.pollAnswer.user.id)
             }
         }, Flag.POLL_ANSWER)
 
@@ -433,10 +431,12 @@ object Constants {
         |عهد شماره ${userStatus.promise}
         |${promiseType.persianName}
         |${promise.content}
+        |${if (promise.payload == null) "" else "اطلاعات بیشتر: \n${promise.payload}"}
         |روزهای باقی‌مانده تا پایان عهد: ${userStatus.remainingDays - if (decrementRemaining) 1 else 0}
     """.trimMargin()
 
     const val promiseReminder = "یادآوری عهد با امام زمان (عج)"
+    const val accomplished = "امروز به عهدت وفا کردی؟"
 
     const val promisesDBMapName = "promises"
     const val promiseConfirmed = "عهد با موفقیت ثبت شد."
@@ -459,4 +459,15 @@ object Constants {
     const val removePromiseRejectText = "خیر"
     const val removePromiseRejectData = "remove-promise-reject"
     const val promiseRemoved = "عهد با موفقیت حذف شد."
+    const val sorry = "متأسفم. به خاطر این عهدشکنی جریمه میشی!\nجریمه امروزت:\n"
+    val punishments = arrayOf(
+        "عدم استفاده از فضای مجازی به مدت دو روز",
+        "محرومیت از تماشای فیلم و برنامه\u200Cهای مورد علاقه تلویزیونی به مدت سه روز",
+        "حذف یک وعده غذایی از برنامه غذایی",
+        "نظافت کل محیط خانه به تنهایی",
+        "انجام کارهای شخصی دیگر اعضای خانواده",
+        "یک ساعت پیاده\u200Cروی و فکر کردن به تخلف از عهد",
+        "نظافت سرویس بهداشتی منزل",
+        "پهن و جمع کردن سفره و وسایل آن به مدت سه روز"
+    )
 }

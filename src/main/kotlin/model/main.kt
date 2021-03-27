@@ -24,7 +24,7 @@ enum class PromiseType(val id: Int, val persianName: String) {
 }
 
 @Serializable
-data class Promise(val id: Int, val content: String)
+data class Promise(val id: Int, val content: String, val payload: String? = null)
 
 @Serializable
 data class PromiseCategory(val promises: Array<Promise>, val audience: PromiseType) {
