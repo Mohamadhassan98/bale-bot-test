@@ -9,12 +9,11 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
-import org.telegram.telegrambots.meta.api.objects.polls.Poll
-import org.telegram.telegrambots.meta.api.objects.polls.PollOption
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.File
 import java.util.*
+import org.telegram.abilitybots.api.util.AbilityUtils.getChatId
 
 class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.botUsername) {
 
@@ -94,12 +93,27 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
 
     val replyToPoll: Reply
         get() = Reply.of({ _, it ->
+            println("In poll reply")
             if (it.poll.options[0].voterCount == 1) {
-                silent.send("دمت گرم.", it.pollAnswer.user.id)
+                println("RightAnswerFromPollReply")
+//                silent.send("دمت گرم.", getChatId(it))
             } else {
-                silent.send("دکی!", it.pollAnswer.user.id)
+                println("WrongAnswerFromPollReply")
+//                silent.send("دکی!", it.pollAnswer.user.id)
             }
         }, Flag.POLL)
+
+    val replyToPollAnswer: Reply
+        get() = Reply.of({ _, it ->
+            println("In poll answer reply")
+            if (it.poll.options[0].voterCount == 1) {
+                println("RightAnswerFromPollAnswerReply")
+//                silent.send("دمت گرم.", getChatId(it))
+            } else {
+                println("WrongAnswerFromPollAnswerReply")
+//                silent.send("دکی!", it.pollAnswer.user.id)
+            }
+        }, Flag.POLL_ANSWER)
 
     @Suppress("unused")
     val startBot: Ability
