@@ -4,6 +4,7 @@ import model.UserStatus
 import org.telegram.abilitybots.api.bot.AbilityWebhookBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.abilitybots.api.sender.SilentSender
+import org.telegram.telegrambots.meta.api.methods.ParseMode
 import org.telegram.telegrambots.meta.api.methods.polls.SendPoll
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
@@ -43,7 +44,8 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                                     getPromise(userStatus.promise)!!,
                                     userStatus,
                                     PromiseType.getType(userStatus.promise / 100)!!,
-                                    true
+                                    decrementRemaining = true,
+                                    includePayload = false
                                 )
                             }\n${Constants.accomplished}"
                         )
@@ -177,11 +179,11 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     Constants.promiseConfirmDialog(
                         promise,
                         promiseId.toInt(),
-                        PromiseType.getType(promiseId.toInt() / 100)!!
+                        PromiseType.getType(promiseId.toInt() / 100)!!,
                     ), it.chatId(), mapOf(
                         Constants.confirmPromiseText to "${Constants.confirmPromiseData} $promiseId $remainingDay",
                         Constants.rejectPromiseText to "${Constants.rejectPromiseData} $promiseId $remainingDay"
-                    )
+                    ), ParseMode.MARKDOWNV2
                 )
             }
             .build()
@@ -267,7 +269,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    )
+                    , ParseMode.MARKDOWNV2)
                 }
             }
         }, Flag.CALLBACK_QUERY, {
@@ -296,7 +298,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    )
+                    , ParseMode.MARKDOWNV2)
                 }
                 Constants.restartPromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
@@ -310,7 +312,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    )
+                    , ParseMode.MARKDOWNV2)
                 }
             }
         }, Flag.CALLBACK_QUERY, {
@@ -340,7 +342,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
                         )
-                    )
+                    , ParseMode.MARKDOWNV2)
                 }
             }
             .build()
@@ -348,11 +350,15 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
     private fun SilentSender.sendWithInlineKeyboard(
         textMessage: String,
         id: Long,
-        buttons: Map<String, String>
+        buttons: Map<String, String>,
+        parseMode: String? = null
     ): Optional<Message>? {
         return execute(SendMessage().apply {
             text = textMessage
             chatId = id.toString()
+            if (parseMode != null) {
+                this.parseMode = parseMode
+            }
             replyMarkup = InlineKeyboardMarkup
                 .builder()
                 .keyboardRow(
@@ -415,7 +421,7 @@ object Constants {
         |عهد شماره $promiseId
         |${promiseType.persianName}
         |${promise.content}
-        |
+        |${if (promise.payload == null) "" else "اطلاعات بیشتر: \n${promise.payload}"}
         |عهد مورد تأیید است؟
     """.trimMargin()
 
@@ -425,13 +431,14 @@ object Constants {
         promise: Promise,
         userStatus: UserStatus,
         promiseType: PromiseType,
-        decrementRemaining: Boolean = false
+        decrementRemaining: Boolean = false,
+        includePayload: Boolean = true
     ) = """
         |عهد انتخابی شما:
         |عهد شماره ${userStatus.promise}
         |${promiseType.persianName}
         |${promise.content}
-        |${if (promise.payload == null) "" else "اطلاعات بیشتر: \n${promise.payload}"}
+        |${if (promise.payload == null || !includePayload) "" else "اطلاعات بیشتر: \n${promise.payload}"}
         |روزهای باقی‌مانده تا پایان عهد: ${userStatus.remainingDays - if (decrementRemaining) 1 else 0}
     """.trimMargin()
 
