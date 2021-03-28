@@ -23,7 +23,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
         super.onRegister()
         silent.send("bot started", creatorId())
         kotlin.concurrent.fixedRateTimer(startAt = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tehran")).apply {
-            set(Calendar.HOUR_OF_DAY, 12)
+            set(Calendar.HOUR_OF_DAY, 10)
             if (!time.after(Date())) {
                 add(Calendar.DATE, 1)
             }
@@ -69,29 +69,6 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             }
         }
     }
-
-    val test: Ability
-        get() = Ability
-            .builder()
-            .name("test")
-            .privacy(Privacy.PUBLIC)
-            .locality(Locality.USER)
-            .action {
-                sender.execute(
-                    SendPoll
-                        .builder()
-                        .chatId(it.chatId().toString())
-                        .isAnonymous(false)
-                        .allowMultipleAnswers(false)
-                        .correctOptionId(0)
-                        .question(Constants.accomplished)
-                        .options(setOf("بله.", "خیر."))
-                        .type("quiz")
-                        .build()
-                )
-            }
-            .build()
-
 
     @Suppress("unused")
     val replyToPollAnswer: Reply
@@ -393,9 +370,10 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
 }
 
 object Constants {
-    const val token = "1783273982:AAHkGOrp0qh8EBIEix2vH6JEEeHjetNVCtQ"
-    const val botUsername = "PromisedSaviourDevBot"
-    const val botServerPath = "https://promisedsaviourbot.herokuapp.com"
+    const val token = "1785034611:AAHwESqrCfLGeYXg84CwJwvOJClOB5rIpmk"
+    const val botUsername = "Zohour_underlies_bot"
+    const val botServerPath = "https://bot.safirict.com"
+    const val serverPort = 8000
     val welcome =
         """|به بات عهد با امام زمان خوش اومدی.
            |توی این بات ما چند تا عهد رو بهت معرفی می‌کنیم تا به دلخواه خودت یکی رو انتخاب کنی. بعد از اون ما تا چهل روز بهت یادآوری می‌کنیم که عهدت با امام زمانت رو فراموش نکنی.

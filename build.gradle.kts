@@ -7,7 +7,7 @@ plugins {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClassName = "MainKt"
 }
 
 group = "me.mohamadhassan"

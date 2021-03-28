@@ -6,12 +6,11 @@ import org.telegram.telegrambots.updatesreceivers.DefaultWebhook
 import java.util.*
 
 fun main() {
-    val port = System.getenv("PORT")
     val webhook = DefaultWebhook()
-    webhook.setInternalUrl("http://0.0.0.0:$port")
+    webhook.setInternalUrl("http://0.0.0.0:${Constants.serverPort}")
     val setWebhook = SetWebhook
         .builder()
-        .url("https://promisedsaviourbot.herokuapp.com")
+        .url(Constants.botServerPath)
         .build()
     val botApi = TelegramBotsApi(DefaultBotSession::class.java, webhook)
     botApi.registerBot(Bot(), setWebhook)
