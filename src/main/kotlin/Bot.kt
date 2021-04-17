@@ -9,9 +9,9 @@ import org.telegram.telegrambots.meta.api.methods.polls.SendPoll
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
-import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import java.io.File
 import java.util.*
 
@@ -33,31 +33,53 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
             promises.entries.filter { (_, userStatus) ->
                 userStatus.isReadyToSend
             }.forEach { (userId, userStatus) ->
-                sender.execute(
-                    SendPoll
-                        .builder()
-                        .isAnonymous(false)
-                        .correctOptionId(0)
-                        .question(
-                            "${Constants.promiseReminder}\n${
-                                Constants.promiseInfoDialog(
-                                    getPromise(userStatus.promise)!!,
-                                    userStatus,
-                                    PromiseType.getType(userStatus.promise / 100)!!,
-                                    decrementRemaining = true,
-                                    includePayload = false
-                                )
-                            }\n${Constants.accomplished}"
+                val exception = runCatching {
+                    sender.execute(
+                        SendMessage
+                            .builder()
+                            .chatId(userId.toString())
+                            .parseMode(ParseMode.HTML)
+                            .text(
+                                "${Constants.promiseReminder}\n${
+                                    Constants.promiseInfoDialog(
+                                        getPromise(userStatus.promise)!!,
+                                        userStatus,
+                                        PromiseType.getType(userStatus.promise / 100)!!,
+                                        decrementRemaining = true,
+                                        includePayload = false
+                                    )
+                                }\n"
+                            )
+                            .build()
+                    )
+                    sender.execute(
+                        SendPoll
+                            .builder()
+                            .isAnonymous(false)
+                            .correctOptionId(0)
+                            .question(
+                                Constants.accomplished
+                            )
+                            .chatId(userId.toString())
+                            .options(setOf("بله.", "خیر."))
+                            .type("quiz")
+                            .build()
+                    )
+                    if (userStatus.remainingDays == 1) {
+                        sender.sendVideo(
+                            SendVideo(
+                                userId.toString(),
+                                InputFile(File("./src/main/resources/video.mp4"))
+                            )
                         )
-                        .chatId(userId.toString())
-                        .options(setOf("بله.", "خیر."))
-                        .type("quiz")
-                        .build()
-                )
-                if (userStatus.remainingDays == 1) {
-                    sender.sendVideo(SendVideo(userId.toString(), InputFile(File("./src/main/resources/video.mp4"))))
+                    }
+                    sentMessages += userId
+                }.exceptionOrNull() as? TelegramApiRequestException
+                if (exception != null) {
+                    if (exception.errorCode == 403 && exception.apiResponse == "Forbidden: bot was blocked by the user") {
+                        promises.remove(userId)
+                    }
                 }
-                sentMessages += userId
             }
             sentMessages.forEach {
                 val current = promises[it]!!
@@ -70,6 +92,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
         }
     }
 
+    //<editor-fold desc="poll answer">
     @Suppress("unused")
     val replyToPollAnswer: Reply
         get() = Reply.of({ _, it ->
@@ -77,7 +100,9 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                 silent.send("${Constants.sorry}${Constants.punishments.random()}", it.pollAnswer.user.id)
             }
         }, Flag.POLL_ANSWER)
+    //</editor-fold>
 
+    //<editor-fold desc="start">
     @Suppress("unused")
     val startBot: Ability
         get() = Ability
@@ -88,11 +113,15 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                 silent.sendWithInlineKeyboard(Constants.welcome, it.chatId(), PromiseType.values().map { promiseType ->
                     promiseType.persianName to promiseType.name
                 }.toMap())
+                val starters = db.getSet<Long>(Constants.startersDBSetName)
+                starters += it.chatId()
             }
             .locality(Locality.USER)
             .privacy(Privacy.PUBLIC)
             .build()
+    //</editor-fold>
 
+    //<editor-fold desc="promise types">
     @Suppress("unused")
     val replyToPromiseType: Reply
         get() = Reply.of({ _, it ->
@@ -108,7 +137,9 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
         }, Flag.CALLBACK_QUERY, {
             runCatching { PromiseType.valueOf(it.callbackQuery.data) }.isSuccess
         })
+    //</editor-fold>
 
+    //<editor-fold desc="register promise">
     @Suppress("unused")
     val promise: Ability
         get() = Ability
@@ -164,7 +195,55 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                 )
             }
             .build()
+    //</editor-fold>
 
+    //<editor-fold desc="statistics">
+    @Suppress("unused")
+    val statistics: Ability
+        get() = Ability
+            .builder()
+            .name("statistics")
+            .info(Constants.statisticsInfo)
+            .locality(Locality.USER)
+            .privacy(Privacy.ADMIN)
+            .action {
+                silent.sendWithInlineKeyboard(
+                    Constants.chooseStatistics, it.chatId(), listOf(
+                        mapOf(
+                            Constants.startersText to Constants.startersData
+                        ),
+                        mapOf(
+                            Constants.activeText to Constants.activeData
+                        )
+                    )
+                )
+            }
+            .build()
+    //</editor-fold>
+
+    //<editor-fold desc="starter statistics">
+    @Suppress("unused")
+    val replyToStartersStatistics: Reply
+        get() = Reply.of({ _, it ->
+            val starters = db.getSet<Long>(Constants.startersDBSetName)
+            silent.send("${Constants.starterStatistics}${starters.size}", it.callbackQuery.message.chatId)
+        }, Flag.CALLBACK_QUERY, {
+            it.callbackQuery.data == Constants.startersData
+        })
+    //</editor-fold>
+
+    //<editor-fold desc="active statistics">
+    @Suppress("unused")
+    val replyToActiveStatistics: Reply
+        get() = Reply.of({ _, it ->
+            val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
+            silent.send("${Constants.activeStatistics}${promises.size}", it.callbackQuery.message.chatId)
+        }, Flag.CALLBACK_QUERY, {
+            it.callbackQuery.data == Constants.activeData
+        })
+    //</editor-fold>
+
+    //<editor-fold desc="promise choose">
     @Suppress("unused")
     val replyToPromiseChoose: Reply
         get() = Reply.of({ _, it ->
@@ -191,7 +270,9 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
         }, Flag.CALLBACK_QUERY, {
             it.callbackQuery.data.startsWith(Constants.confirmPromiseData) || it.callbackQuery.data.startsWith(Constants.rejectPromiseData)
         })
+    //</editor-fold>
 
+    //<editor-fold desc="promise modify">
     @Suppress("unused")
     val replyToPromiseModify: Reply
         get() = Reply.of({ _, it ->
@@ -219,7 +300,9 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
         }, Flag.CALLBACK_QUERY, {
             it.callbackQuery.data == Constants.removePromiseData || it.callbackQuery.data == Constants.restartPromiseData
         })
+    //</editor-fold>
 
+    //<editor-fold desc="remove promise">
     @Suppress("unused")
     val replyToRemovePromise: Reply
         get() = Reply.of({ _, it ->
@@ -245,14 +328,16 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         ), it.callbackQuery.message.chatId, mapOf(
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
-                        )
-                    , ParseMode.HTML)
+                        ), ParseMode.HTML
+                    )
                 }
             }
         }, Flag.CALLBACK_QUERY, {
             it.callbackQuery.data == Constants.removePromiseRejectData || it.callbackQuery.data == Constants.removePromiseConfirmData
         })
+    //</editor-fold>
 
+    //<editor-fold desc="restart promise">
     @Suppress("unused")
     val replyToRestartPromise: Reply
         get() = Reply.of({ _, it ->
@@ -274,8 +359,8 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         ), it.callbackQuery.message.chatId, mapOf(
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
-                        )
-                    , ParseMode.HTML)
+                        ), ParseMode.HTML
+                    )
                 }
                 Constants.restartPromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
@@ -288,14 +373,16 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         ), it.callbackQuery.message.chatId, mapOf(
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
-                        )
-                    , ParseMode.HTML)
+                        ), ParseMode.HTML
+                    )
                 }
             }
         }, Flag.CALLBACK_QUERY, {
             it.callbackQuery.data == Constants.restartPromiseRejectData || it.callbackQuery.data == Constants.restartPromiseConfirmData
         })
+    //</editor-fold>
 
+    //<editor-fold desc="info">
     @Suppress("unused")
     val statusInfo: Ability
         get() = Ability
@@ -318,38 +405,46 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         ), it.chatId(), mapOf(
                             Constants.removePromiseText to Constants.removePromiseData,
                             Constants.restartPromiseText to Constants.restartPromiseData
-                        )
-                    , ParseMode.HTML)
+                        ), ParseMode.HTML
+                    )
                 }
             }
             .build()
+    //</editor-fold>
 
     private fun SilentSender.sendWithInlineKeyboard(
         textMessage: String,
         id: Long,
-        buttons: Map<String, String>,
+        rows: List<Map<String, String>>,
         parseMode: String? = null
-    ): Optional<Message>? {
-        return execute(SendMessage().apply {
-            text = textMessage
-            chatId = id.toString()
-            if (parseMode != null) {
-                this.parseMode = parseMode
-            }
-            replyMarkup = InlineKeyboardMarkup
-                .builder()
-                .keyboardRow(
-                    buttons.map { (text, data) ->
+    ) = execute(SendMessage().apply {
+        text = textMessage
+        chatId = id.toString()
+        if (parseMode != null) {
+            this.parseMode = parseMode
+        }
+        replyMarkup = InlineKeyboardMarkup
+            .builder()
+            .keyboard(
+                rows.map {
+                    it.map { (text, data) ->
                         InlineKeyboardButton
                             .builder()
                             .text(text)
                             .callbackData(data)
                             .build()
                     }
-                )
-                .build()
-        })
-    }
+                }
+            )
+            .build()
+    })
+
+    private fun SilentSender.sendWithInlineKeyboard(
+        textMessage: String,
+        id: Long,
+        buttons: Map<String, String>,
+        parseMode: String? = null
+    ) = sendWithInlineKeyboard(textMessage, id, listOf(buttons), parseMode)
 
     private fun hasPromise(userId: Long, promiseId: Int? = null): Boolean {
         val userPromises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
@@ -424,6 +519,7 @@ object Constants {
     const val accomplished = "امروز به عهدت وفا کردی؟"
 
     const val promisesDBMapName = "promises"
+    const val startersDBSetName = "starters"
     const val promiseConfirmed = "عهد با موفقیت ثبت شد."
     const val promiseRejected = "برای مشاهده لیست عهدها، یکی از دسته\u200Cها رو انتخاب کن."
     const val statusInfoInfo = "مشاهده عهد فعال"
@@ -455,4 +551,12 @@ object Constants {
         "نظافت سرویس بهداشتی منزل",
         "پهن و جمع کردن سفره و وسایل آن به مدت سه روز"
     )
+    const val statisticsInfo = "آمار استفاده از بات را نشان می دهد."
+    const val chooseStatistics = "نوع آمار مورد نظر خود را انتخاب کنید."
+    const val startersText = "افرادی که بات را آغاز کرده اند"
+    const val startersData = "starters"
+    const val activeText = "افرادی که عهد فعال دارند"
+    const val activeData = "active"
+    const val starterStatistics = "تعداد افرادی که بات را آغاز کرده اند: "
+    const val activeStatistics = "تعداد افرادی که هم اکنون عهد فعال دارند: "
 }
