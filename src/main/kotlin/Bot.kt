@@ -1,9 +1,10 @@
 import model.Promise
 import model.PromiseType
 import model.UserStatus
-import org.telegram.abilitybots.api.bot.AbilityWebhookBot
+import org.telegram.abilitybots.api.bot.AbilityBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.abilitybots.api.sender.SilentSender
+import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.meta.api.methods.ParseMode
 import org.telegram.telegrambots.meta.api.methods.polls.SendPoll
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
@@ -14,15 +15,17 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException
 import java.io.File
 import java.util.*
+import kotlin.concurrent.fixedRateTimer
 
-class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.botUsername) {
+class Bot(options: DefaultBotOptions = DefaultBotOptions()) :
+    AbilityBot(Constants.token, Constants.botUsername, options) {
 
-    override fun creatorId() = 714273093L
+    override fun creatorId() = Constants.userId
 
     override fun onRegister() {
         super.onRegister()
         silent.send("bot started", creatorId())
-        kotlin.concurrent.fixedRateTimer(startAt = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tehran")).apply {
+        fixedRateTimer(startAt = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tehran")).apply {
             set(Calendar.HOUR_OF_DAY, 10)
             if (!time.after(Date())) {
                 add(Calendar.DATE, 1)
@@ -161,10 +164,12 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         promiseId = it.arguments()[0]
                         remainingDay = it.arguments()[1]
                     }
+
                     1 -> {
                         promiseId = it.arguments()[0]
                         remainingDay = "40"
                     }
+
                     else -> {
                         silent.send(Constants.insufficientNumberOfArguments, it.chatId())
                         return@action
@@ -259,6 +264,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     userPromises[it.callbackQuery.from.id] = UserStatus(promiseId.toInt(), remaining.toInt())
                     silent.send(Constants.promiseConfirmed, it.callbackQuery.message.chatId)
                 }
+
                 Constants.rejectPromiseData -> silent.sendWithInlineKeyboard(
                     Constants.promiseRejected,
                     it.callbackQuery.message.chatId,
@@ -288,6 +294,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         Constants.restartPromiseRejectText to Constants.restartPromiseRejectData
                     )
                 )
+
                 Constants.removePromiseData -> silent.sendWithInlineKeyboard(
                     Constants.removePromiseConfirm,
                     it.callbackQuery.message.chatId,
@@ -317,6 +324,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                     silent.send(Constants.promiseRemoved, it.callbackQuery.message.chatId)
                     silent.send(Constants.noPromiseFound, it.callbackQuery.message.chatId)
                 }
+
                 Constants.removePromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
@@ -362,6 +370,7 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
                         ), ParseMode.HTML
                     )
                 }
+
                 Constants.restartPromiseRejectData -> {
                     val promises = db.getMap<Long, UserStatus>(Constants.promisesDBMapName)
                     val userPromise = promises[it.callbackQuery.from.id]!!
@@ -465,8 +474,9 @@ class Bot : AbilityWebhookBot(Constants.token, Constants.botUsername, Constants.
 }
 
 object Constants {
-    const val token = "1785034611:AAHwESqrCfLGeYXg84CwJwvOJClOB5rIpmk"
-    const val botUsername = "Zohour_underlies_bot"
+    const val token = "1515766288:AhYIIsbKpzrR6gP2rIQkX5YAcpcpTiXD2NMhIfZ1"
+    const val botUsername = "sorush_tbot"
+    const val userId = 1515766288L
     const val botServerPath = "https://bot.safirict.com"
     const val serverPort = 8000
     val welcome =
